@@ -25,7 +25,7 @@ score-level **late fusion** meta-model — with final reputation scores anchored
 
 Full per-model benchmark tables live in `baseline_experiment/*.json`, `HGT_Heterogeneous_Graph_Model/hgt_model_metrics.json`, and `late_Fusion_Score-Level_Integration/model_benchmarks_summary.json`.
 
-> Training and evaluation use a stratified 80/10/10 split (seed 42). The graph is built in chronological order and message passing uses time-aware neighbor sampling (`time_attr`), so a node's prediction only ever reaches connections that existed before it in the history. Thresholds and model selection use the validation split only; the test split is scored once. Fusion happens at the score level: HGT reviewer/review scores and the DeBERTa text probability (plus a rolling historical average of past DeBERTa scores per reviewer) feed LightGBM / XGBoost / Logistic Regression / MLP meta-classifiers.
+> Data is split stratified 80/10/10 into train/val/test; thresholds and model selection use the validation split only, and the test set is scored once. Against the obvious stacking concern — reviewer connections leaking across sets — the graph is built chronologically and neighbor sampling is time-aware, so any prediction only reaches connections that existed *before* it in the review history. Fusion is done at the score level: HGT scores + the DeBERTa text probability (plus a rolling average of the reviewer's past DeBERTa scores) feed LightGBM / Logistic Regression / MLP meta-classifiers.
 
 ---
 
@@ -123,24 +123,9 @@ uv run python ./Deployment/verifier/public_verifier_cli.py --tx-hash 0xabcdef...
 
 ---
 
-## Dataset (`bretthollenbeck/fake-reviews-data`)
+## Dataset
 
-The dataset comes from the public benchmark repository [bretthollenbeck/fake-reviews-data](https://github.com/bretthollenbeck/fake-reviews-data): **381,734 Amazon reviews** with 24 metadata columns (ratings, helpful-vote counts, dates, and the dataset's fake-review-ring annotations). After hierarchical filtering of rows without reliable labels, **80,281 labeled reviews** are used for training and evaluation. The cleaned CSV (`public_reviews_dataset_cleaned.csv`) is **~267 MB**, so it is not tracked here (see download steps below).
-
-Labels follow the dataset's hierarchical tagging: rows are explicitly marked honest (`reviewer_labeled_honest` / `reviewer_classified_honest`) or fake (`reviewer_labeled_fake` / `reviewer_classified_fake`); honest tags take precedence and untagged rows are discarded, giving a positive-unlabeled style problem.
-
-Data is split 80/10/10 stratified (seed 42) into train/validation/test over supervised nodes. **Decision thresholds and any hyperparameter choices are tuned exclusively on the validation split** (`best_threshold.json` / `best_thresholds.json` hold the val-tuned values); the test split is evaluated once, at the very end.
-
-## Dataset Download & Setup Note
-
-Because the cleaned dataset is ~267 MB and exceeds GitHub's 100 MB file limit, download it manually:
-1. Go to [https://github.com/bretthollenbeck/fake-reviews-data](https://github.com/bretthollenbeck/fake-reviews-data).
-2. Download the **CSV version of the dataset** (compressed archive/zip).
-3. **Unzip/extract** the downloaded archive.
-4. Place the unzipped CSV file (`public_reviews_dataset_cleaned.csv`) inside **`./data`** so the relative path is:
-   ```text
-   ./data/public_reviews_dataset_cleaned.csv
-   ```
+Sourced from the public benchmark [bretthollenbeck/fake-reviews-data](https://github.com/bretthollenbeck/fake-reviews-data) — a labeled Amazon case study of fake-review rings: **~381,000 reviews**, of which **~80,000** carry usable labels for training and evaluation. The cleaned CSV (~267 MB) goes into `./data/` as `public_reviews_dataset_cleaned.csv` (path expected by every script).
 
 ---
 
